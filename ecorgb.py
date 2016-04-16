@@ -15,15 +15,15 @@ class EcoEnv:
 
 class Region:
     def __init__(self, ents=[]):
-        entities = {}
-        entity_number = 0
+        self.entities = {}
+        self.entity_number = 0
         for ent in ents:
             self.add(ent)
     
     def add(self, entity):
-        entities[entity_number] = entity
-        ret = entity_number
-        entity_number + 1
+        self.entities[self.entity_number] = entity
+        ret = self.entity_number
+        self.entity_number += 1
         return ret
 
 def make_forest(num_trees):
@@ -37,6 +37,15 @@ class Player:
     
     def do(self, env, action, target_index, timestamp):
         self.stun = timestamp + action(env, env.places[self.loc], (self.loc, 0, target_index))
+        
+    def nearby(self, env, **kwargs):
+        for loc, each in env.places[self.loc].entities.items():
+            good = True
+            for k, v in each.items():
+                if k in kwargs and kwargs[k] is not v:
+                    good = False
+            if good:
+                return loc
 
 class Action:
     def chop(env, region, location):

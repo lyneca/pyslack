@@ -1,10 +1,11 @@
 import re
 from datetime import datetime
 
+import api
 import requests
 import websocket
 
-import api
+import ecorgb
 
 track_changes = False
 memory = {}
@@ -13,7 +14,8 @@ slack = api.API(api.the_pirates)
 
 players = {}
 player_names = {}
-game = EcoEnv(make_forest(num_trees=20))
+game = ecorgb.EcoEnv(make_forest(num_trees=20))
+
 
 def pb_send(channel, message):
     slack.post_as_bot(
@@ -45,6 +47,7 @@ def pb_commands(message):
         global track_changes
         track_changes = not track_changes
 
+
 do_functions = {}
 
 def do_commands(message):
@@ -56,10 +59,12 @@ def do_commands(message):
         pb_send(channel, "You are not an active player; register with `ACC register`")
     elif players[user].stun > datetime.now().timestamp():
         pb_send(channel, "You are still busy")
-    else return do_functions[words[0]](message['channel'], user, words[1:]);
+    else: return do_functions[words[0]](message['channel'], user, words[1:]);
+
 
 def do_chop(channel, user, words):
-    players[user].do(game, Action.chop, players[user].nearby(type='tree'), datetime.now().timestamp())
+    players[user].do(game, ecorgb.Action.chop, players[user].nearby(game, type='tree'), datetime.now().timestamp())
+
 
 do_functions = {
     'chop': do_chop
@@ -79,10 +84,11 @@ def acc_commands(message):
             pb_send(channel, "`{syntax}` alias must not contain spaces".format(syntax=syntax))
         elif len(words) < 2:
             pb_send(channel, "`{syntax}`".format(syntax=syntax))
-        elif words[1] in player_names
+        elif words[1] in player_names:
             pb_send(channel, "that name is taken")
-        else
-            player_names[words[1]] = players[user] = Player(game)
+        else:
+            player_names[words[1]] = players[user] = ecorgb.Player(game)
+
             
 def changed_message(message):
     if track_changes:
@@ -96,15 +102,23 @@ def changed_message(message):
             )
         )
 
+
 event_output = {
     'transform': "[{location[0]} - {location[1]}] A {from_type} became a {to_type}! (@{location[2]})"
 }
 
+
+def set_output(message):
+    global main_channel
+    main_channel = message['channel']
+
+
 responses = {}
 functions = {
     #r'pb .+': pb_commands
-    r'DO .+': do_commands
-    r'ACC .+': acc_commands
+    r'DO .+': do_commands,
+    r'ACC .+': acc_commands,
+    r'SET OUTPUT': set_output
 }.items()
 
 initial_metadata = requests.get('https://slack.com/api/rtm.start', params={'token': api.the_pirates}).json()
@@ -137,5 +151,5 @@ while True:
        #     if re.match(response, n['text']):
        #         pb_send(n['channel'], responses[response])
        #         continue
-        for event in game.flush_events()
+        for event in game.flush_events():
             pb_send(main_channel, event_output[event['nature']].format(**event))
