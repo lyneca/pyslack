@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 
 class EcoEnv:
     def __init__(self, region):
@@ -31,12 +32,12 @@ def make_forest(num_trees):
     return region
 
 class Player:
-    def __init__(self, env):
+    def __init__(self, env, stun):
         self.loc = env.spawn
-        self.stun = 0  # born on Epoch
+        self.stun = stun
     
-    def do(self, env, action, target_index, timestamp):
-        self.stun = timestamp + action(env, env.places[self.loc], (self.loc, 0, target_index))
+    def do(self, env, action, target_index, dt_when):
+        self.stun = dt_when + action(env, env.places[self.loc], (self.loc, 0, target_index))
         
     def nearby(self, env, **kwargs):
         for loc, each in env.places[self.loc].entities.items():
@@ -52,6 +53,6 @@ class Action:
         if location[2] in region.entities and region.entities[location[2]]['type'] == 'tree':
             region.entities[location[2]]['type'] = 'log'
             env.new_event(nature='transform', location=location, from_type='tree', to_type='log')
-            return 10000
-        return 0
+            return timedelta(seconds=10)
+        return timedelta()
 

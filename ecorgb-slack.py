@@ -1,20 +1,18 @@
 import re
 from datetime import datetime
 
-import api
-import requests
-import websocket
+#import requests
+api = __import__('fake_api')
+websocket = __import__('fake_websocket')
 
 import ecorgb
 
-track_changes = False
-memory = {}
-
-slack = api.API(api.the_pirates)
+eco_key = api.make_keys()['ecorgb']
+slack = api.API(eco_key)
 
 players = {}
 player_names = {}
-game = ecorgb.EcoEnv(make_forest(num_trees=20))
+game = ecorgb.EcoEnv(ecorgb.make_forest(num_trees=20))
 
 
 def pb_send(channel, message):
@@ -26,49 +24,30 @@ def pb_send(channel, message):
     )
 
 
-def pb_commands(message):
-    string = message['text']
-    channel = message['channel']
-    words = string.split()[1:]
-    command = words[0]
-    if command == 'set':
-        memory[words[1]] = ' '.join(words[2:])
-        pb_send(channel, 'Set "%s" to "%s".' % (words[1], ' '.join(words[2:])), )
-    elif command == 'get':
-        if words[1] in memory:
-            pb_send(channel, memory[words[1]])
-    elif command == 'reply':
-        if len(' '.join(words[1:]).split(' :|: ')) == 2:
-            responses[eval('r\'' + ' '.join(words[1:]).split(' :|: ')[0] + '\'')] = ' '.join(words[1:]).split(' :|: ')[1]
-            pb_send(channel, "Saved.")
-        else:
-            pb_send(channel, "Incorrect syntax; must be `pb reply [phrase] :|: [reply]`.")
-    elif command == 'track_edits':
-        global track_changes
-        track_changes = not track_changes
-
-
 do_functions = {}
+
 
 def do_commands(message):
     string = message['text']
     words = string.split()[1:]
     channel = message['channel']
     user = message['user']
+    now = datetime.fromtimestamp(float(message['ts']))
     if user not in players:
         pb_send(channel, "You are not an active player; register with `ACC register`")
-    elif players[user].stun > datetime.now().timestamp():
+    elif players[user].stun > now:
         pb_send(channel, "You are still busy")
-    else: return do_functions[words[0]](message['channel'], user, words[1:]);
+    else: return do_functions[words[0]](message['channel'], user, words[1:], now);
 
 
-def do_chop(channel, user, words):
-    players[user].do(game, ecorgb.Action.chop, players[user].nearby(game, type='tree'), datetime.now().timestamp())
+def do_chop(channel, user, words, time_when):
+    players[user].do(game, ecorgb.Action.chop, players[user].nearby(game, type='tree'), time_when)
 
 
 do_functions = {
     'chop': do_chop
 }
+
 
 def acc_commands(message):
     syntax = "ACC"
@@ -76,6 +55,7 @@ def acc_commands(message):
     words = string.split()[1:]
     channel = message['channel']
     user = message['user']
+    now = datetime.fromtimestamp(float(message['ts']))
     if words == []:
         pass
     elif words[0] == 'register':
@@ -87,20 +67,7 @@ def acc_commands(message):
         elif words[1] in player_names:
             pb_send(channel, "that name is taken")
         else:
-            player_names[words[1]] = players[user] = ecorgb.Player(game)
-
-            
-def changed_message(message):
-    if track_changes:
-        pb_send(
-            message['channel'],
-            '@%s edited "%s" to "%s": %s' % (
-                slack.get_user_name(message['message']['user']),
-                message['previous_message']['text'],
-                message['message']['text'],
-                slack.get_permalink(message['previous_message']['ts'], message['channel'])
-            )
-        )
+            player_names[words[1]] = players[user] = ecorgb.Player(game, now)
 
 
 event_output = {
@@ -121,11 +88,10 @@ functions = {
     r'SET OUTPUT': set_output
 }.items()
 
-initial_metadata = requests.get('https://slack.com/api/rtm.start', params={'token': api.the_pirates}).json()
-wss_url = initial_metadata['url']
-timestamp = datetime.now().timestamp()
-
 w = websocket.WebSocket()
+
+wss_url = api.get_url(eco_key)
+init_time = datetime.now()
 w.connect(wss_url)
 
 while True:
@@ -133,16 +99,11 @@ while True:
     print(n)
     n = eval(n)
     if all([
-                n['type'] == 'message',
-        n['hidden'] if 'hidden' in n else True,
-                'bot_id' not in n,
-                float(n['ts']) > timestamp if 'ts' in n else False
+        n['type'] == 'message',
+        n['hidden'] if 'hidden' in n else True,  # why is this here
+        'bot_id' not in n,
+        datetime.fromtimestamp(float(n['ts'])) > init_time if 'ts' in n else False
     ]):
-        if 'subtype' in n:
-            if n['subtype'] == 'message_changed':
-                changed_message(n)
-            continue
-        print(n)
         for key, func in functions:
             if re.match(key, n['text']):
                 func(n)
@@ -151,5 +112,5 @@ while True:
        #     if re.match(response, n['text']):
        #         pb_send(n['channel'], responses[response])
        #         continue
-        for event in game.flush_events():
-            pb_send(main_channel, event_output[event['nature']].format(**event))
+    for event in game.flush_events():
+        pb_send(main_channel, event_output[event['nature']].format(**event))
