@@ -1,18 +1,37 @@
-from datetime import datetime, timedelta
+import heapq
 
 class EcoEnv:
     def __init__(self, region):
         self.spawn = (0,0)
         self.places = {self.spawn: region}
-        self.events = []
+        self.records = []
+        self.queue_num = 0
+        self.queue = []
     
-    def new_event(self, **kwargs):
-        self.events.append(kwargs)
+    def new_record(self, **kwargs):
+        self.records.append(kwargs)
     
-    def flush_events(self):
-        ret = self.events
-        self.events = []
+    def flush_records(self):
+        ret = self.records
+        self.records = []
         return ret
+    
+    def queue_event(self, time, event):
+        heapq.heappush(self.queue, (time, self.queue_num, event))
+        self.queue_num += 1
+    
+    def call_events(self, time):
+        while len(self.queue) > 0 and time >= self.queue[0][0]:
+            sim_time, nul, event = heapq.heappop(self.queue)
+            event.call(self, sim_time)
+    
+    def get(self, location):
+        r_l, a_l, e_l = (location + (None, None, None))[0:3]
+        r = self.places.get(r_l)
+        a = None
+        e = r.entities.get(e_l) if r else None
+        return (r, a, e)
+    
 
 class Region:
     def __init__(self, ents=[]):
@@ -27,32 +46,27 @@ class Region:
         self.entity_number += 1
         return ret
 
-def make_forest(num_trees):
-    region = Region([{'type': 'tree'} for x in range(num_trees)])
+
+def make_region(**ent_nums):
+    entities = [
+        [{'type': type} for x in range(quantity)] 
+        for type, quantity in ent_nums.items()
+    ]
+    region = Region(sum(entities, []))
     return region
-
-class Player:
-    def __init__(self, env, stun):
-        self.loc = env.spawn
-        self.stun = stun
     
-    def do(self, env, action, target_index, dt_when):
-        self.stun = dt_when + action(env, env.places[self.loc], (self.loc, 0, target_index))
+
+class Event:
+    class Transform:
+        def __init__(self, location, changes):
+            self.target = location
+            self.changes = changes
         
-    def nearby(self, env, **kwargs):
-        for loc, each in env.places[self.loc].entities.items():
-            good = True
-            for k, v in each.items():
-                if k in kwargs and kwargs[k] is not v:
-                    good = False
-            if good:
-                return loc
-
-class Action:
-    def chop(env, region, location):
-        if location[2] in region.entities and region.entities[location[2]]['type'] == 'tree':
-            region.entities[location[2]]['type'] = 'log'
-            env.new_event(nature='transform', location=location, from_type='tree', to_type='log')
-            return timedelta(seconds=10)
-        return timedelta()
-
+        def call(self, env, time):
+            target = env.get(self.target)[2]
+            if target:
+                from_type = target['type']
+                target.update(self.changes)
+                to_type = target['type']
+                env.new_record(nature='transform', location=self.target, from_type=from_type, to_type=to_type)
+    
