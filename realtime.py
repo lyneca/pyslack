@@ -116,7 +116,7 @@ def to_morse(message):
     string = message['text']
     channel = message['channel']
     out = []
-    content = ':'.join(string.split(':')[1:]).strip()
+    content = ':'.join(string.split(':')[1:]).strip().lower()
     for char in content:
         if char in text_to_morse:
             out.append(text_to_morse[char])
