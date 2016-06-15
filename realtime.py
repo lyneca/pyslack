@@ -81,7 +81,7 @@ text_to_morse.update(symbols)
 morse_to_text = {text_to_morse[x]: x for x in text_to_morse}
 
 
-def send(channel, message, **kwargs):
+def send(channel, message):
     slack.post_as_bot(
         channel,
         message,
