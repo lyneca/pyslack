@@ -90,6 +90,7 @@ class API:
             icon_emoji=emoji,
             as_user=False,
             username=username,
+            **kwargs,
         )
 
     def post_as_user(self, channel, message):
@@ -98,6 +99,7 @@ class API:
             channel=channel,
             text=message,
             as_user=True,
+            **kwargs,
         )
 
     def pin_message(self, channel, ts):
