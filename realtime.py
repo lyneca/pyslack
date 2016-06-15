@@ -112,9 +112,28 @@ def morse(message):
         )
 
 
+def to_morse(message):
+    string = message['text']
+    channel = message['channel']
+    out = []
+    content = ':'.join(string.split(':')[1:]).strip()
+    for char in content:
+        if char in text_to_morse:
+            out.append(text_to_morse[char])
+        elif char is ' ':
+            out.append('/')
+        else:
+            out.append(char)
+    send(
+        channel,
+        "Morse: `" + ' '.join(out) + '`'
+    )
+
+
 responses = {}
 functions = {
-    r'': morse
+    r'': morse,
+    r'morse:': to_morse
 }
 
 initial_metadata = requests.get('https://slack.com/api/rtm.start', params={'token': api.keys['pirates']}).json()
