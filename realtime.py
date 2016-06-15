@@ -144,7 +144,7 @@ w = websocket.WebSocket()
 w.connect(wss_url)
 
 while True:
-    n = w.next().replace('true', 'True').replace('false', 'False').replace('null', 'Null')
+    n = w.next().replace('true', 'True').replace('false', 'False').replace('null', 'None')
     print(n)
     n = eval(n)
     if all([n['type'] == 'message', n['hidden'] if 'hidden' in n else True, 'bot_id' not in n,
