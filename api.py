@@ -85,21 +85,21 @@ class API:
     def post_as_bot(self, channel, message, username='bot', emoji='', **kwargs):
         return self._send(
             'chat.postMessage',
-            **kwargs,
             channel=channel,
             text=message,
             icon_emoji=emoji,
             as_user=False,
             username=username,
+            **kwargs,
         )
 
     def post_as_user(self, channel, message, **kwargs):
         return self._send(
             'chat.postMessage',
-            **kwargs,
             channel=channel,
             text=message,
             as_user=True,
+            **kwargs,
         )
 
     def pin_message(self, channel, ts):
