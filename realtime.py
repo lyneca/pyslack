@@ -87,7 +87,6 @@ def send(channel, message, **kwargs):
         message,
         'Morsebot',
         ':coal:',
-        **kwargs
     )
 
 

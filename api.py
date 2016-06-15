@@ -82,10 +82,9 @@ class API:
                '/p' + \
                ts.replace('.', '')
 
-    def post_as_bot(self, channel, message, username='bot', emoji='', **kwargs):
+    def post_as_bot(self, channel, message, username='bot', emoji=''):
         return self._send(
             'chat.postMessage',
-            **kwargs,
             channel=channel,
             text=message,
             icon_emoji=emoji,
@@ -93,10 +92,9 @@ class API:
             username=username,
         )
 
-    def post_as_user(self, channel, message, **kwargs):
+    def post_as_user(self, channel, message):
         return self._send(
             'chat.postMessage',
-            **kwargs,
             channel=channel,
             text=message,
             as_user=True,
