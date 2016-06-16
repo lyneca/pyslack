@@ -39,6 +39,7 @@ letters = [
     '--..',
 ]
 numbers = [
+    '-----',
     '.----',
     '..---',
     '...--',
@@ -48,7 +49,6 @@ numbers = [
     '--...',
     '---..',
     '----.',
-    '-----'
 ]
 
 symbols = {
@@ -57,8 +57,6 @@ symbols = {
     '\'': '.----.',
     '(': '-.--.',
     ')': '-.--.-',
-    '[': '-.--.',
-    ']': '-.--.-',
     '+': '.-.-.',
     ',': '--..--',
     '-': '-....-',
@@ -72,8 +70,9 @@ symbols = {
     '_': '..--.-',
     '¶': '.-.-..',
     '!': '-.-.--',
+    '&': '.-...',
 }
-letters = {chr(x + 97): letters[x] for x in range(25)}
+letters = {chr(x + 97): letters[x] for x in range(26)}
 numbers = {str(x): numbers[x] for x in range(10)}
 text_to_morse = letters
 text_to_morse.update(numbers)
