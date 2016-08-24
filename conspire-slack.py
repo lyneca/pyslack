@@ -5,16 +5,8 @@ from datetime import datetime
 api = __import__('fake_api')
 websocket = __import__('fake_websocket')
 
-import ecorgb
-import playerrgb
-
-eco_key = api.make_keys()['ecorgb']
-slack = api.API(eco_key)
-
-players = {}
-player_names = {}
-game = ecorgb.EcoEnv(ecorgb.make_region(tree=20, bean=15))
-
+conspire_key = api.make_keys()['conspiracy']
+slack = api.API(conspire_key)
 
 def pb_send(channel, message):
     slack.post_as_bot(
@@ -24,11 +16,38 @@ def pb_send(channel, message):
         ':godmode:'
     )
 
+signup = set()
 
-do_functions = {}
+def sign_up(message):
+    signup.add(message['user'])
+
+def sign_down(message):
+    signup.remove(message['user'])
+
+def start_game(message):
+    global signup, kappa, swapreq, functions
+    chain = list(signup)
+    random.shuffle(chain)
+    def get_line_graph(l):
+        for i in range(len(chain)):
+            yield (chain[i], chain[i+1])
+        yield (chain[-1], chain[0])
+    del signup
+    kappa = dict(get_line_graph(chain))
+    swapreq = set()
+    functions = game_functions
+
+def end_game(message):
+    global kappa, swapreq, signup, functions
+    del kappa
+    del swapreq
+    signup = set()
+    functions = prep_functions
 
 
-def do_commands(message):
+
+
+def kswap(message):
     string = message['text']
     words = string.split()[1:]
     channel = message['channel']
@@ -77,24 +96,6 @@ def acc_commands(message):
         else:
             player_names[words[1]] = players[user] = playerrgb.Player(game, now)
 
-
-def start_game(message):
-    global signup, kappa, swapreq
-    chain = list(signup)
-    random.shuffle(chain)
-    def get_line_graph(l):
-        for i in range(len(chain)):
-            yield (chain[i], chain[i+1])
-        yield (chain[-1], chain[0])
-    del signup
-    kappa = dict(get_line_graph(chain))
-    swapreq = set()
-
-def end_game(message):
-    global kappa, swapreq, signup
-    del kappa
-    del swapreq
-    signup = set()
 
 responses = {}
 functions = prep_functions = {
