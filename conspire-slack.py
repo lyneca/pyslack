@@ -78,24 +78,36 @@ def acc_commands(message):
             player_names[words[1]] = players[user] = playerrgb.Player(game, now)
 
 
-event_output = {
-    'transform': "[{location[0]} - {location[1]}] A {from_type} became a {to_type}! (@{location[2]})",
-    'disappear': "[{location[0]} - {location[1]}] A {from_type} disappeared! (@{location[2]})",
-    'appear': "[{location[0]} - {location[1]}] A {to_type} appeared! (@{location[2]})",
-}
+def start_game(message):
+    global signup, kappa, swapreq
+    chain = list(signup)
+    random.shuffle(chain)
+    def get_line_graph(l):
+        for i in range(len(chain)):
+            yield (chain[i], chain[i+1])
+        yield (chain[-1], chain[0])
+    del signup
+    kappa = dict(get_line_graph(chain))
+    swapreq = set()
 
-
-def set_output(message):
-    global main_channel
-    main_channel = message['channel']
-
+def end_game(message):
+    global kappa, swapreq, signup
+    del kappa
+    del swapreq
+    signup = set()
 
 responses = {}
-functions = {
-    #r'pb .+': pb_commands
-    r'DO .+': do_commands,
-    r'ACC .+': acc_commands,
-    r'SET OUTPUT': set_output
+functions = prep_functions = {
+    r'SIGN UP': sign_in,
+    r'SIGN DOWN': sign_out,
+    r'START': start_game,
+}.items()
+
+game_functions = {
+    r'KSWAP .+': kswap,
+    r'CAP .+': cap,
+    r'RESIGN .+': resign,
+    r'END': end_game,
 }.items()
 
 w = websocket.WebSocket()
@@ -108,8 +120,6 @@ while True:
     n = w.next().replace('true', 'True').replace('false', 'False').replace('none', 'None')
     print(n)
     n = eval(n)
-    if 'ts' in n:
-        game.call_events(datetime.fromtimestamp(float(n['ts'])))
     if all([
         n['type'] == 'message',
         n['hidden'] if 'hidden' in n else True,  # why is this here
@@ -124,13 +134,4 @@ while True:
        #     if re.match(response, n['text']):
        #         pb_send(n['channel'], responses[response])
        #         continue
-    for rec in game.flush_records():
-        if 'actor' in rec:
-            actor = rec['actor']
-            rec['actor'] = 'Nobody'  # This way {actor} is available to str.format()
-            for player_name, player in player_names.items():
-                if player is actor:
-                    rec['actor'] = player_name  # I smell Python
-                    break
-        pb_send(main_channel, event_output[rec['nature']].format(**rec))
 
