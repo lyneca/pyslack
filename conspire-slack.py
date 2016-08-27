@@ -16,6 +16,7 @@ def pb_send(channel, message):
         ':godmode:'
     )
 
+admins = ['spivee','lyneca']
 signup = set()
 
 def sign_up(message):
@@ -24,6 +25,13 @@ def sign_up(message):
 def sign_down(message):
     signup.remove(message['user'])
 
+def admin(command):
+    def decorated(message):
+        if 'user' in message and message['user'] in admins:
+            command(message)
+    return decorated
+
+@admin
 def start_game(message):
     global signup, kappa, swapreq, functions
     chain = list(signup)
@@ -37,6 +45,7 @@ def start_game(message):
     swapreq = set()
     functions = game_functions
 
+@admin
 def end_game(message):
     global kappa, swapreq, signup, functions
     del kappa
@@ -45,59 +54,66 @@ def end_game(message):
     functions = prep_functions
 
 
-
+def show_kappa(sharer, target, format="{default_message}", back_format="{default_message}"):
+    sharer_kappa = kappa[sharer]
+    sharer_name = slack.get_user_name(sharer)
+    sharer_kappa_name = slack.get_user_name(sharer_kappa)
+    fargs = {
+        'sharer': sharer_name, 
+        'sharer_kappa': sharer_kappa_name, 
+        'target': 
+    }
+    default_forward = "{sharer} has shared with you that {sharer_kappa} can cap them.".format(**fargs)
+    default_backward = "{target} has been informed of your kappa.".format(**fargs)
+    pb_send(target, format.format(default_message=default_forward, **fargs))
+    if back_format: pb_send(sharer, format.format(default_message=default_backward, **fargs))
 
 def kswap(message):
     string = message['text']
     words = string.split()[1:]
     channel = message['channel']
-    user = message['user']
-    now = datetime.fromtimestamp(float(message['ts']))
-    if user not in players:
-        pb_send(channel, "You are not an active player; register with `ACC register`")
-    elif players[user].stun > now:
-        pb_send(channel, "You are still busy")
+    caller = message['user']
+    flag = words.pop(-1)
+    if flag not in ['direct', 'cancel', 'delay']:
+        words.append(flag)
+        flag = delay
+    target_name = '_'.join(words)
+    try:
+        target = slack.users[target_name].id
+    except(KeyError):
+        pb_send(channel, "Player \"{}\" not found.".format(target_name))
+        return
+    if flag == 'cancel':
+        pb_send(channel, "Share request cancelled." if caller, target in kswap else "Share request not found.")
+        kswap.discard((caller, target))
+    else 
+        if target, caller in kswap:  # happens whether flag is 'direct' or 'delay'
+            kswap.remove((target, caller))
+            show_kappa(sharer=caller, target=target)
+            show_kappa(sharer=target, target=caller, format="In response, {default_message}", back_format="In response, {default_message}")
+        else if flag = 'delay':
+            kswap.add((caller, target))
+        else if flag = 'direct':
+            show_kappa(sharer=caller, tarhet=target)
+
+
+def cap(message):
+    target_name = '_'.join(message['text'][1:])
+    caller = message['user']
+    caller_name = slack.get_user_name(caller)
+    try:
+        target = slack.users[target_name].id
+    except(KeyError):
+        pb_send(message['channel'], "Player \"{}\" not found.".format(target_name))
+    if kappa[target]=caller:
+        eliminate(target,'capped')
     else:
-        todo = do_functions[words[0]]
-        return todo[0](message['channel'], user, words[1:], now, todo[1:]);
+        eliminate(caller,'failed')
 
 
-def do_targeted(channel, user, words, time_when, args):
-    action, target_type = args
-    targets = players[user].find_all(game, type=target_type)
-    target = targets[0] if targets else None
-    players[user].do(game, time_when, action, target_location=(players[user].loc, 0, target))
+def resign(message):
+    eliminate(message['user'], 'resigned')
 
-do_functions = {
-    'chop': (do_targeted, 'chop', 'tree'),
-    'eat': (do_targeted, 'eat', 'bean'),
-    'plant': (do_targeted, 'plant', 'bean'),
-    'pick': (do_targeted, 'pick', 'bean stalk'),
-}
-
-
-def acc_commands(message):
-    syntax = "ACC"
-    string = message['text']
-    words = string.split()[1:]
-    channel = message['channel']
-    user = message['user']
-    now = datetime.fromtimestamp(float(message['ts']))
-    if words == []:
-        pass
-    elif words[0] == 'register':
-        syntax += " register <alias>"
-        if len(words) > 2:
-            pb_send(channel, "`{syntax}` alias must not contain spaces".format(syntax=syntax))
-        elif len(words) < 2:
-            pb_send(channel, "`{syntax}`".format(syntax=syntax))
-        elif words[1] in player_names:
-            pb_send(channel, "that name is taken")
-        else:
-            player_names[words[1]] = players[user] = playerrgb.Player(game, now)
-
-
-responses = {}
 functions = prep_functions = {
     r'SIGN UP': sign_in,
     r'SIGN DOWN': sign_out,
