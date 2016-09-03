@@ -27,7 +27,7 @@ def sign_down(message):
 
 def admin(command):
     def decorated(message):
-        if 'user' in message and message['user'] in admins:
+        if 'user' in message and slack.get_user_name(message['user']) in admins:
             command(message)
     return decorated
 
@@ -53,6 +53,33 @@ def end_game(message):
     signup = set()
     functions = prep_functions
 
+@admin
+def save_game(message):
+    out = open('kappa.dat', 'w')
+    out.writelines("{}: {}".format(k, v) for k, v in kappa.items())
+    out.close()
+    out = open('swapreq.dat', 'w')
+    out.writelines("{}: {}".format(k, v) for k, v in swapreq.items())
+    out.close()
+    pb_send(message['channel'], "Game successfully saved.")
+
+@admin
+def load_game(message):
+    global signup, kappa, swapreq, functions
+    functions = game_functions
+    del signup
+    kappaf = open('kappa.dat')
+    kappa = dict(line.split(': ') for line in kappaf)
+    kappaf.close()
+    swapf = open('swapreq.dat')
+    swapreq = dict(line.split(': ') for line in swapf)
+    swapf.close()
+    pb_send(message['channel'], "Game successfully loaded.")
+    
+@admin
+def punish_lyneca(message):
+    global admins
+    admins = [x for x in admins if x != 'lyneca']
 
 def show_kappa(sharer, target, format="{default_message}", back_format="{default_message}"):
     sharer_kappa = kappa[sharer]
@@ -118,6 +145,8 @@ functions = prep_functions = {
     r'SIGN UP': sign_in,
     r'SIGN DOWN': sign_out,
     r'START': start_game,
+    r'LOAD': load_game,
+    r'SCREW LYNECA': punish_lyneca,
 }.items()
 
 game_functions = {
@@ -125,6 +154,8 @@ game_functions = {
     r'CAP .+': cap,
     r'RESIGN .+': resign,
     r'END': end_game,
+    r'SAVE': save_game,
+    r'SCREW LYNECA': punish_lyneca,
 }.items()
 
 w = websocket.WebSocket()
