@@ -1,4 +1,4 @@
-import requests
+from fake_team import channel_info, user_info
 
 
 def make_keys():
@@ -8,8 +8,7 @@ def make_keys():
 
 
 def get_url(key):
-    rtm_start = 'https://slack.com/api/rtm.start'
-    return requests.get(rtm_start, params={'token': key}).json()['url']
+    return 'https://google.com'
 
 
 class RestrictedActionException(Exception):
@@ -36,19 +35,13 @@ class API:
         self.keys = {}
 
     def _get_team_info(self):
-        print("Fetching team info...")
-        i = self._send('team.info')['team']
-        return i['name'], i['id'], i['domain']
+        return 'ECORGB TEAM', 0, None
 
     def _get_channels(self):
-        print("Fetching channel list...")
-        c = {x['name']: Channel(x) for x in self._send('channels.list')['channels']}
-        return c
+        return {x['name']: Channel(x) for x in channel_info}
 
     def _get_users(self):
-        print("Fetching user list...")
-        c = {x['name']: User(x) for x in self._send('users.list')['members']}
-        return c
+        return {x['name']: User(x) for x in user_info}
 
     def _send(self, method, **params):
         params['token'] = self.token
@@ -82,22 +75,10 @@ class API:
                ts.replace('.', '')
 
     def post_as_bot(self, channel, message, username='bot', emoji=''):
-        return self._send(
-            'chat.postMessage',
-            channel=channel,
-            text=message,
-            icon_emoji=emoji,
-            as_user=False,
-            username=username,
-        )
+        print("#{channel_name}: <{username}> {message}".format(channel_name=self.get_channel_name(channel), username=username, message=message))
 
-    def post_as_user(self, channel, message):
-        return self._send(
-            'chat.postMessage',
-            channel=channel,
-            text=message,
-            as_user=True,
-        )
+    def post_as_user(self, **kwargs):
+        self.post_as_bot(username='as_user', **kwargs)
 
     def pin_message(self, channel, ts):
         print("Pinning message...")
