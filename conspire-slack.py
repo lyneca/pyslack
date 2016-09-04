@@ -93,6 +93,9 @@ def save_routine():
     out = open('swapreq.dat', 'w')
     out.write('\n'.join("{}: {}".format(k, v) for k, v in swapreq))
     out.close()
+    out = open('eliminated.dat', 'w')
+    out.write('\n'.join(eliminated))
+    out.close()
 
 @admin
 def save_game(message):
@@ -105,7 +108,6 @@ def load_game(message):
     global signup, kappa, swapreq, functions, main_channel, eliminated
     functions = game_functions
     main_channel = message['channel']
-    eliminated = []
     del signup
     kappaf = open('kappa.dat')
     kappa = dict(line.rstrip().split(': ') for line in kappaf)
@@ -113,6 +115,9 @@ def load_game(message):
     swapf = open('swapreq.dat')
     swapreq = set(line.rstrip().split(': ') for line in swapf)
     swapf.close()
+	elimf = open('eliminated.dat')
+	eliminated = [line.rstrip() for line in elimf]
+	elimf.close()
     pb_send(message['channel'], "Game successfully loaded.")
     echo("Game loaded.")
     inform_players()
