@@ -9,14 +9,17 @@ websocket = __import__('websocket')
 conspire_key = api.make_keys()['conspiracy']
 slack = api.API(conspire_key)
 
+def echo(message):
+    print(message)
+
 def pb_send(channel, message):
     slack.post_as_bot(
         channel,
         message,
-        'Pybot',
+        'Game Master',
         ':godmode:'
     )
-
+pb_send(slack.channels['general'].id, "Game server up.")
 admins = ['spivee','lyneca']
 signup = set()
 
@@ -26,9 +29,13 @@ def inform_players():
 
 def sign_up(message):
     signup.add(message['user'])
+    pb_send(message['channel'], "%s has signed up." % slack.get_user_name(message['user']))
+    echo("User %s signed up." % slack.get_user_name(message['user']))
 
 def sign_down(message):
     signup.remove(message['user'])
+    pb_send(message['channel'], "%s has signed down." % slack.get_user_name(message['user']))
+    echo("User %s signed down." % slack.get_user_name(message['user']))
 
 def admin(command):
     def decorated(message):
@@ -49,6 +56,7 @@ def player(command):
 def start_game(message):
     global signup, kappa, swapreq, functions, main_channel, eliminated
     if len(signup) < 2:
+        pb_send(message['channel'], "At least two players required to start the game.")
         return
     main_channel = message['channel']
     eliminated = []
@@ -59,6 +67,7 @@ def start_game(message):
     swapreq = set()
     functions = game_functions
     pb_send(main_channel, "The game has started! There are {} players".format(len(kappa)))
+    echo("Game started.")
     inform_players()
 
 
@@ -75,6 +84,7 @@ def end_routine():
 def end_game(message):
     end_routine()
     pb_send(message['channel'], "Game ended.")
+    echo("Game ended.")
 
 def save_routine():
     out = open('kappa.dat', 'w')
@@ -88,6 +98,7 @@ def save_routine():
 def save_game(message):
     save_routine()
     pb_send(message['channel'], "Game successfully saved.")
+    echo("Game saved.")
 
 @admin
 def load_game(message):
@@ -103,12 +114,8 @@ def load_game(message):
     swapreq = set(line.rstrip().split(': ') for line in swapf)
     swapf.close()
     pb_send(message['channel'], "Game successfully loaded.")
+    echo("Game loaded.")
     inform_players()
-    
-@admin
-def punish_lyneca(message):
-    global admins
-    admins = [x for x in admins if x != 'lyneca']
 
 def show_kappa(sharer, target, format="{default_message}", back_format="{default_message}"):
     if sharer not in kappa:
@@ -118,8 +125,8 @@ def show_kappa(sharer, target, format="{default_message}", back_format="{default
     sharer_kappa_name = slack.get_user_name(sharer_kappa)
     target_name = slack.get_user_name(target)
     fargs = {
-        'sharer': sharer_name, 
-        'sharer_kappa': sharer_kappa_name, 
+        'sharer': sharer_name,
+        'sharer_kappa': sharer_kappa_name,
         'target': target_name,
     }
     default_forward = "{sharer} has shared with you that {sharer_kappa} can cap them.".format(**fargs)
@@ -166,8 +173,10 @@ def cap(message):
             pb_send(message['channel'], target_name + (" has already been eliminated!" if target in eliminated else " is not playing this game."))
         elif kappa[target]==caller:
             eliminate(target,'capped')
+            echo("User %s capped %s." % (slack.get_user_name(caller), slack.get_user_name(target)))
         else:
             eliminate(caller,'failed')
+            echo("User %s capped the wrong target (%s)." % (slack.get_user_name(caller), slack.get_user_name(target)))
     else:
         pb_send(message['channel'], "Player \"{}\" not found.".format(target_name))
 
@@ -175,20 +184,32 @@ def cap(message):
 @player
 def resign(message):
     eliminate(message['user'], 'resigned')
+    echo(slack.get_user_name(message['user']) + " resigned.")
 
 @admin
 def terminate(message):
     global running
     running = False
     pb_send(message['channel'], "Program terminated")
+    echo("User %s terminated the server." % slack.get_user_name(message['user']))
+
+def list_players(message):
+    text = '*Players left alive:*\n```' + '\n'.join(sorted([slack.get_user_name(x) for x in kappa])) + '```'
+    if len(eliminated) > 0:
+        text += '\n*Players eliminated:*\n```' + '\n'.join(sorted(eliminated)) + '```'
+    pb_send(message['channel'], text)
+
+def list_signers(message):
+    pb_send(message['channel'], '*Players signed up:\n```' + '\n'.join(sorted([slack.get_user_name(x) for x in signup])) + '```')
+
 
 functions = prep_functions = {
     r'SIGN ?UP': sign_up,
     r'SIGN ?DOWN': sign_down,
     r'START': start_game,
     r'LOAD': load_game,
-    r'SCREW LYNECA': punish_lyneca,
     r'TERMINATE': terminate,
+    r'LIST': list_signers,
 }.items()
 
 game_functions = {
@@ -197,7 +218,7 @@ game_functions = {
     r'RESIGN .+': resign,
     r'END': end_game,
     r'SAVE': save_game,
-    r'SCREW LYNECA': punish_lyneca,
+    r'LIST': list_players,
 }.items()
 
 elim_msg = {
@@ -232,7 +253,7 @@ w.connect(wss_url)
 running = True
 while running:
     n = w.next().replace('true', 'True').replace('false', 'False').replace('none', 'None').replace('null', 'None')
-    print(n)
+    # print(n)
     n = eval(n)
     if all([
         n['type'] == 'message',
@@ -248,4 +269,3 @@ while running:
        #     if re.match(response, n['text']):
        #         pb_send(n['channel'], responses[response])
        #         continue
-

@@ -1,2 +1,4 @@
 .idea
 api_keys.db
+__pycache__/*
+*.lnk
