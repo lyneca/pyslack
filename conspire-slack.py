@@ -202,6 +202,8 @@ def list_players(message):
 def list_signers(message):
     pb_send(message['channel'], '*Players signed up:\n```' + '\n'.join(sorted([slack.get_user_name(x) for x in signup])) + '```')
 
+def ping(message):
+    pb_send(message['channel'], "PONG")
 
 functions = prep_functions = {
     r'SIGN ?UP': sign_up,
@@ -210,6 +212,7 @@ functions = prep_functions = {
     r'LOAD': load_game,
     r'TERMINATE': terminate,
     r'LIST': list_signers,
+    r'PING': ping,
 }.items()
 
 game_functions = {
@@ -219,6 +222,7 @@ game_functions = {
     r'END': end_game,
     r'SAVE': save_game,
     r'LIST': list_players,
+    r'PING': ping,
 }.items()
 
 elim_msg = {
