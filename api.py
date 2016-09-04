@@ -9,7 +9,7 @@ def make_keys():
 
 def get_url(key):
     rtm_start = 'https://slack.com/api/rtm.start'
-    return requests.get(rtm_start, params={'token': key}).json()[url]
+    return requests.get(rtm_start, params={'token': key}).json()['url']
 
 
 class RestrictedActionException(Exception):
