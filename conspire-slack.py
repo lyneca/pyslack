@@ -144,7 +144,7 @@ def show_kappa(sharer, target, format="{default_message}", back_format="{default
 @player
 def kswap(message):
     string = message['text']
-    words = string.split()[1:]
+    words = string.split()[2:]
     channel = message['channel']
     caller = message['user']
     flag = words.pop(-1)
@@ -171,7 +171,7 @@ def kswap(message):
 
 @player
 def cap(message):
-    target_name = '_'.join(message['text'].split()[1:])
+    target_name = '_'.join(message['text'].split()[2:])
     caller = message['user']
     caller_name = slack.get_user_name(caller)
     if target_name in slack.users:
