@@ -74,7 +74,7 @@ def start_game(message):
     del signup
     swapreq = set()
     functions = game_functions
-    pb_send(main_channel, "The game has started! There are {} players".format(len(kappa)))
+    pb_send(main_channel, "The game has started! There are {} players.".format(len(kappa)))
     echo("Game started.")
     inform_players()
 
@@ -87,7 +87,7 @@ def promote(message):
         pb_send(channel, "Player \"%s\" not found." % user_name)
         return
     admins.append(user_name)
-    pb_send(channel, "Promoted %s to admin" % user_name)
+    pb_send(channel, "Promoted %s to admin." % user_name)
     echo("User %s promoted %s" % (slack.get_user_name(message['user']), user_name))
 
 @admin
@@ -95,11 +95,11 @@ def demote(message):
     channel = message['channel']
     words = message['text'].split()[2:]
     user_name = '_'.join(words)
-    if user_name not in slack.users.keys() + admins:
+    if user_name not in list(slack.users.keys()) + admins:
         pb_send(channel, "Player \"%s\" not found." % user_name)
         return
     admins.remove(user_name)
-    pb_send(channel, "Demoted %s to user" % user_name)
+    pb_send(channel, "Demoted %s to user." % user_name)
     echo("User %s demoted %s" % (slack.get_user_name(message['user']), user_name))
 
 def end_routine():
@@ -231,7 +231,7 @@ def list_players(message):
     pb_send(message['channel'], text)
 
 def list_signers(message):
-    pb_send(message['channel'], '*Players signed up:\n```' + '\n'.join(sorted([slack.get_user_name(x) for x in signup])) + '```')
+    pb_send(message['channel'], '*Players signed up:*\n```' + '\n'.join(sorted([slack.get_user_name(x) for x in signup])) + '```')
 
 def ping(message):
     pb_send(message['channel'], "pong")
@@ -295,7 +295,7 @@ wss_url = api.get_url(conspire_key)
 init_time = datetime.now()
 w.connect(wss_url)
 print("Ready.")
-pb_send(slack.channels['general'].id, "Game server up.")
+pb_send(slack.channels['events'].id, "Game server up.")
 running = True
 while running:
     n = w.next().replace('true', 'True').replace('false', 'False').replace('none', 'None').replace('null', 'None')
