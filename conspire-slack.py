@@ -70,7 +70,6 @@ def start_game(message):
     echo("Game started.")
     inform_players()
 
-
 def end_routine():
     global kappa, swapreq, signup, functions, main_channel, eliminated
     del kappa
@@ -203,26 +202,32 @@ def list_signers(message):
     pb_send(message['channel'], '*Players signed up:\n```' + '\n'.join(sorted([slack.get_user_name(x) for x in signup])) + '```')
 
 def ping(message):
-    pb_send(message['channel'], "PONG")
+    pb_send(message['channel'], "pong")
+
+@admin
+def log(message):
+    echo("%s: %s" % (slack.get_user_name(message['user']), ' '.join(message['text'].split()[2:])))
 
 functions = prep_functions = {
-    r'SIGN ?UP': sign_up,
-    r'SIGN ?DOWN': sign_down,
-    r'START': start_game,
-    r'LOAD': load_game,
-    r'TERMINATE': terminate,
-    r'LIST': list_signers,
-    r'PING': ping,
+    r'gm sign ?up': sign_up,
+    r'gm sign ?down': sign_down,
+    r'gm start': start_game,
+    r'gm load': load_game,
+    r'gm terminate': terminate,
+    r'gm list': list_signers,
+    r'gm ping': ping,
+    r'gm log .+': log,
 }.items()
 
 game_functions = {
-    r'KSWAP .+': kswap,
-    r'CAP .+': cap,
-    r'RESIGN .+': resign,
-    r'END': end_game,
-    r'SAVE': save_game,
-    r'LIST': list_players,
-    r'PING': ping,
+    r'gm kswap .+': kswap,
+    r'gm cap .+': cap,
+    r'gm resign .+': resign,
+    r'gm end': end_game,
+    r'gm save': save_game,
+    r'gm list': list_players,
+    r'gm ping': ping,
+    r'gm log .+': log,
 }.items()
 
 elim_msg = {
@@ -249,11 +254,12 @@ def eliminate(id, reason, wrong_target_name = ''):
         save_routine()
 
 w = websocket.WebSocket()
-
+print("Connecting to socket...")
 wss_url = api.get_url(conspire_key)
 init_time = datetime.now()
 w.connect(wss_url)
-
+print("Ready.")
+pb_send(slack.channels['general'].id, "Game server up.")
 running = True
 while running:
     n = w.next().replace('true', 'True').replace('false', 'False').replace('none', 'None').replace('null', 'None')
