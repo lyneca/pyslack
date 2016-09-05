@@ -1,4 +1,5 @@
 import re
+import os
 import random
 from datetime import datetime
 
@@ -6,11 +7,18 @@ import requests
 api = __import__('api')
 websocket = __import__('websocket')
 
+logfile = "logfile.txt"
+
 conspire_key = api.make_keys()['conspiracy']
 slack = api.API(conspire_key)
 
+if not os.path.exists(logfile):
+    open(logfile, 'x').close()
+
 def echo(message):
     print(message)
+    with open(logfile, 'a') as logfileobj:
+        logfileobj.write(message + '\n')
 
 def pb_send(channel, message):
     slack.post_as_bot(
@@ -19,7 +27,7 @@ def pb_send(channel, message):
         'Game Master',
         ':godmode:'
     )
-pb_send(slack.channels['general'].id, "Game server up.")
+
 admins = ['spivee','lyneca']
 signup = set()
 
