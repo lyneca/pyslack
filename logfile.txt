@@ -1,3 +1,4 @@
 lyneca: Hello!
 User lyneca signed up.
 User lyneca signed down.
+User lyneca terminated the server.

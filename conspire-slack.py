@@ -78,6 +78,30 @@ def start_game(message):
     echo("Game started.")
     inform_players()
 
+@admin
+def promote(message):
+    channel = message['channel']
+    words = message['text'].split()[2:]
+    user_name = '_'.join(words)
+    if user_name not in slack.users:
+        pb_send(channel, "Player \"%s\" not found." % user_name)
+        return
+    admins.append(user_name)
+    pb_send(channel, "Promoted %s to admin" % user_name)
+    echo("User %s promoted %s" % (slack.get_user_name(message['user']), user_name))
+
+@admin
+def demote(message):
+    channel = message['channel']
+    words = message['text'].split()[2:]
+    user_name = '_'.join(words)
+    if user_name not in slack.users.keys() + admins:
+        pb_send(channel, "Player \"%s\" not found." % user_name)
+        return
+    admins.remove(user_name)
+    pb_send(channel, "Demoted %s to user" % user_name)
+    echo("User %s demoted %s" % (slack.get_user_name(message['user']), user_name))
+
 def end_routine():
     global kappa, swapreq, signup, functions, main_channel, eliminated
     del kappa
@@ -225,6 +249,8 @@ functions = prep_functions = {
     r'gm list': list_signers,
     r'gm ping': ping,
     r'gm log .+': log,
+    r'gm promote .+': promote,
+    r'gm demote .+': demote,
 }.items()
 
 game_functions = {
@@ -236,6 +262,8 @@ game_functions = {
     r'gm list': list_players,
     r'gm ping': ping,
     r'gm log .+': log,
+    r'gm promote .+': promote,
+    r'gm demote .+': demote,
 }.items()
 
 elim_msg = {
