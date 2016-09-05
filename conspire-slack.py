@@ -1,6 +1,7 @@
 import re
 import os
 import random
+import sys
 from datetime import datetime
 
 import requests
@@ -309,7 +310,12 @@ while running:
     ]):
         for key, func in functions:
             if re.match(key, n['text']):
-                func(n)
+                try:
+                    func(n)
+                except Exception as e:
+                    pb_send(slack.channels['events'].id, "Program terminated due to exception: `" + str(e) + '`')
+                    echo("Exception: " + e)
+                    sys.exit()
                 continue
        # for response in responses:
        #     if re.match(response, n['text']):
