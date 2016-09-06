@@ -2,3 +2,7 @@
 api_keys.db
 __pycache__/*
 *.lnk
+kappa.dat
+swapreq.dat
+eliminated.dat
+logfile.txt
